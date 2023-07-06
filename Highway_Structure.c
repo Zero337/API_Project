@@ -19,6 +19,12 @@ typedef struct station_s{
 }station_t;
 
 
+typedef struct stack_s{
+	int val;
+	struct stack_s *next;
+}stack_t;
+
+
 
 void InOrder_Tree_Walk(station_t *);
 
@@ -64,8 +70,11 @@ void RB_Delete_Fixup_station(station_t *, station_t *);
 
 void RB_Delete_Fixup_car(car_t *, car_t *);
 
+void push(stack_t *, stack_t *);
 
+int pop(stack_t *);
 
+int empty(stack_t *);
 
 
 int main(int argc, char const *argv[])
@@ -762,7 +771,7 @@ void RB_Delete_Fixup_car(car_t *t, car_t *x){
 
 
 
-void push(stack_t *s, stack_t *z ){
+void push(stack_t *s, stack_t *z){
 	if(s == NULL){
 		s = z;
 	}
