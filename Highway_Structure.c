@@ -759,3 +759,40 @@ void RB_Delete_Fixup_car(car_t *t, car_t *x){
 	}
 	x->color = 0;
 }
+
+
+
+void push(stack_t *s, stack_t *z ){
+	if(s == NULL){
+		s = z;
+	}
+	else{
+		z->next = s;
+		s = z;
+	}
+}
+
+
+int pop(stack_t *s){
+	int tmp;
+	stack_t *head;
+	
+	tmp = s->val;
+	head = s;
+	s = s->next;
+	free(head);
+	return tmp;
+}
+
+
+int empty(stack_t *s){
+	int res;
+
+	if(s == NULL){
+		res = 1;
+	}else{
+		res = 0;
+	}
+
+	return res;
+}
