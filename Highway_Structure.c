@@ -24,6 +24,8 @@ void InOrder_Tree_Walk(station_t *);
 
 station_t * Tree_Search(station_t *, int);
 
+car_t * Tree_Search_car(car_t *, int);
+
 station_t * Tree_Minimum(station_t *);
 
 car_t * Tree_Minimum_car(car_t *);
@@ -70,7 +72,7 @@ int main(int argc, char const *argv[])
 {
 	FILE* fd;
 	char command[20];
-	int distance, number_of_cars, range, i;
+	int distance, number_of_cars, range, i, starting_station, arrival_station;
 	station_t *station_root = NULL, *tmp_station = NULL;
 	car_t *car_root = NULL, *tmp_car = NULL;
 
@@ -125,13 +127,16 @@ int main(int argc, char const *argv[])
 				}
 			}
 		}
+
 		else if(strcmp(command, "demolisci-stazione") == 0)
 		{
 			if(fscanf(fd, "%d", &distance) != EOF)
 			{
+				/*First we search for the station*/
 				tmp_station = Tree_Search(station_root, distance);
 				if(tmp_station != NULL)
 				{
+					/*Delete station if found*/
 					RB_Delete_station(station_root, tmp_station);
 					free(tmp_station);
 					fprintf(fd, "demolita\n");
@@ -140,10 +145,12 @@ int main(int argc, char const *argv[])
 				}
 			}
 		}
+
 		else if (strcmp(command, "aggiungi-auto") == 0)
 		{
 			if(fscanf(fd, "%d %d", &distance, &range) != EOF)
 			{
+				/*First we search for the station*/
 				tmp_station = Tree_Search(station_root, distance);
 				if (tmp_station != NULL)
 				{
@@ -152,7 +159,7 @@ int main(int argc, char const *argv[])
 					if (tmp_car)
 					{
 						tmp_car->range = range;
-						/*Insert the car node into the car tree of the specific station*/
+						/*Insert the car node into the car tree of the designated station*/
 						RB_Insert_car(tmp_station->cars, tmp_car);
 						fprintf(fd, "aggiunta\n");
 					}else{
@@ -163,9 +170,35 @@ int main(int argc, char const *argv[])
 				}
 			}
 		}
+
 		else if (strcmp(command, "rottama-auto") == 0)
 		{
 			if (fscanf(fd, "%d %d", &distance, &range))
+			{
+				/*First we search for the station*/
+				tmp_station = Tree_Search(station_root, distance);
+				if (tmp_station != NULL)
+				{
+					/*If the station is found we then search for the car within the station's cars*/
+					tmp_car = Tree_Search_car(tmp_station->cars, range);
+					if (tmp_car != NULL)
+					{
+						/*If the car is found we proceed to delete it*/
+						RB_Delete_car(tmp_station->cars, tmp_car);
+						free(tmp_car);
+						fprintf(fd, "rottamata\n");
+					}else{
+						fprintf(fd, "non rottamata\n");
+					}
+				}else{
+					fprintf(fd, "non rottamata\n");
+				}
+			}
+		}
+
+		else if (strcmp(command, "pianifica-percorso") == 0)
+		{
+			if (fscanf(fd, "%d %d", &starting_station, &arrival_station) != EOF)
 			{
 				
 			}
@@ -199,6 +232,19 @@ station_t * Tree_Search(station_t *x, int k){
 	}
 	else{
 		return Tree_Search(x->right, k);
+	}
+}
+
+
+car_t * Tree_Search_car(car_t *x, int k){
+	if(x==NULL || k == x->range){
+		return x;
+	}
+	else if(k < x->range){
+		return Tree_Search_car(x->left, k);
+	}
+	else{
+		return Tree_Search_car(x->right, k);
 	}
 }
 
