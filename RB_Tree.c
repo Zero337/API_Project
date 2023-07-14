@@ -388,12 +388,47 @@ node_t * RB_Delete_Fixup(node_t *t, node_t *x, node_t *parent){
 				t = Left_Rotate(t, parent);
 				w = parent->right;
 			}
-			if((w->left == NULL && w->right == NULL) || (w->left->color == 0 && w->right->color == 0)){		//Case 2
-				w->color = 1;
+			if(w->left == NULL){
+				if(w->right == NULL || w->right->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
+						w->left->color = 0;
+						w->color = 1;
+						t = Right_Rotate(t, w);
+						w = parent->right;
+					}
+					w->color = parent->color;		//Case 4
+					parent->color = 0;
+					w->right->color = 0;
+					t = Left_Rotate(t, parent);
+					x = t;
+				}
+			}else if(w->right == NULL){
+				if(w->left->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
+						w->left->color = 0;
+						w->color = 1;
+						t = Right_Rotate(t, w);
+						w = parent->right;
+					}
+					w->color = parent->color;		//Case 4
+					parent->color = 0;
+					w->right->color = 0;
+					t = Left_Rotate(t, parent);
+					x = t;
+				}
+			}else if(w->right->color == 0 && w->left->color == 0){
+				w->color = 0;
 				x = parent;
 				parent = x->p;
-			}
-			else{
+			}else{
 				if((w->right == NULL) || (w->right->color == 0)){		//Case 3
 					w->left->color = 0;
 					w->color = 1;
@@ -415,12 +450,47 @@ node_t * RB_Delete_Fixup(node_t *t, node_t *x, node_t *parent){
 				t = Right_Rotate(t, parent);
 				w = parent->left;
 			}
-			if((w->left == NULL && w->right == NULL) || (w->right->color == 0 && w->left->color == 0)){
+			if(w->left == NULL){
+				if(w->right == NULL || w->right->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->left == NULL) || (w->left->color == 0)){
+						w->right->color = 0;
+						w->color = 1;
+						t = Left_Rotate(t, w);
+						w = parent->left;
+					}
+					w->color = parent->color;
+					parent->color = 0;
+					w->left->color = 0;
+					t = Right_Rotate(t, parent);
+					x = t;
+				}
+			}else if(w->right == NULL){
+				if(w->left->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->left == NULL) || (w->left->color == 0)){
+						w->right->color = 0;
+						w->color = 1;
+						t = Left_Rotate(t, w);
+						w = parent->left;
+					}
+					w->color = parent->color;
+					parent->color = 0;
+					w->left->color = 0;
+					t = Right_Rotate(t, parent);
+					x = t;
+				}
+			}else if(w->right->color == 0 && w->left->color == 0){
 				w->color = 0;
 				x = parent;
 				parent = x->p;
-			}
-			else{
+			}else{
 				if((w->left == NULL) || (w->left->color == 0)){
 					w->right->color = 0;
 					w->color = 1;
