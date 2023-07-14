@@ -10,7 +10,6 @@ typedef struct car_s{
 }car_t;
 
 
-
 typedef struct station_s{
 	int distance;
 	int color;
@@ -20,9 +19,16 @@ typedef struct station_s{
 
 
 typedef struct stack_s{
-	struct station_s * station_ptr;
+	struct station_s *station_ptr;
 	struct stack_s *next;
 }stack_t;
+
+
+typedef struct queue_s{
+	struct station_s *station_ptr;
+	struct queue_s *next;
+	struct queue_s *previous;
+}queue_t;
 
 
 
@@ -70,9 +76,11 @@ car_t * RB_Delete_Fixup_car(car_t *, car_t *, car_t *);
 
 stack_t * push(stack_t *, stack_t *);
 
-stack_t * pop(stack_t *, station_t *);
+stack_t * pop(stack_t *);
 
-int empty(stack_t *);
+queue_t * enqueue(queue_t *, queue_t *);
+
+queue_t * dequeue(queue_t *);
 
 void path_finder(station_t *, station_t *);
 
@@ -86,7 +94,7 @@ int main(int argc, char const *argv[])
 	car_t *car_root = NULL, *tmp_car = NULL;
 
 
-	fd = fopen("archivio_test_aperti/open_1.txt", "r");
+	fd = fopen("archivio_test_aperti/open_10.txt", "r");
 	if(fd)
 	{
 		while(fscanf(fd, "%s", command) != EOF)
@@ -95,20 +103,14 @@ int main(int argc, char const *argv[])
 		if(strcmp(command, "aggiungi-stazione") == 0)
 		{	
 			if(fscanf(fd, "%d %d", &distance, &number_of_cars) != EOF)
-			{	
-				tmp_station = malloc(sizeof(station_t));	//Allocate the size of 1 station node
-				if(tmp_station)
-				{
-					tmp_station->distance = distance;
-					tmp_station->cars = NULL;
-					station_root = RB_Insert_station(station_root, tmp_station);
-					if(station_root == NULL)	//Insert the station node into the station tree
+			{
+				if(Tree_Search_station(station_root, distance) == NULL){		//If the station is not already in the tree
+					tmp_station = malloc(sizeof(station_t));	//Allocate the size of 1 station node
+					if(tmp_station)
 					{
-						printf("non aggiunta\n");
-						free(tmp_station);
-					}
-					else
-					{
+						tmp_station->distance = distance;
+						tmp_station->cars = NULL;
+						station_root = RB_Insert_station(station_root, tmp_station);
 						car_root = NULL;
 						for(i = 0; i < number_of_cars; i++)		//Loop for creating the car tree
 						{
@@ -122,97 +124,96 @@ int main(int argc, char const *argv[])
 								}else{
 								printf("Error in memory allocation!");
 								}
-							}	 
+							}
 						}
 						tmp_station->cars = car_root;
 						printf("aggiunta\n");
-					}
-				}else
-				{
-					printf("Error in memory allocation!");
-				}
-			}
-		}
-
-		else if(strcmp(command, "demolisci-stazione") == 0)
-		{
-			if(fscanf(fd, "%d", &distance) != EOF)
-			{
-				tmp_station = Tree_Search_station(station_root, distance);		//First we search for the station
-				if(tmp_station != NULL)
-				{
-					station_root = RB_Delete_station(station_root, tmp_station);	//Delete station if found
-					free(tmp_station);
-					printf("demolita\n");
-				}else{
-					printf("non demolita\n");
-				}
-			}
-		}
-
-		else if (strcmp(command, "aggiungi-auto") == 0)
-		{	
-			if(fscanf(fd, "%d %d", &distance, &range) != EOF)
-			{
-				tmp_station = Tree_Search_station(station_root, distance);		//First we search for the station
-				if (tmp_station != NULL)
-				{
-					tmp_car = malloc(sizeof(car_t));	//Allocate the size of 1 car node
-					if (tmp_car)
-					{
-						tmp_car->range = range;
-						tmp_station->cars = RB_Insert_car(tmp_station->cars, tmp_car);		//Insert the car node into the car tree of the designated station
-						printf("aggiunta\n");
+						}else
+						{
+							printf("Error in memory allocation!");
+						}
 					}else{
-						printf("Error in memory allocation!");
+						printf("non aggiunta\n");
 					}
-				}else{
-					printf("non aggiunta\n");
 				}
 			}
-		}
 
-		else if (strcmp(command, "rottama-auto") == 0)
-		{
-			if (fscanf(fd, "%d %d", &distance, &range))
+			else if(strcmp(command, "demolisci-stazione") == 0)
 			{
-				tmp_station = Tree_Search_station(station_root, distance);		//First we search for the station
-				if (tmp_station != NULL)
+				if(fscanf(fd, "%d", &distance) != EOF)
 				{
-					tmp_car = Tree_Search_car(tmp_station->cars, range);	//If the station is found we then search for the car within the station's cars
-					if (tmp_car != NULL)
+					tmp_station = Tree_Search_station(station_root, distance);		//First we search for the station
+					if(tmp_station != NULL)
 					{
-						tmp_station->cars = RB_Delete_car(tmp_station->cars, tmp_car);		//If the car is found we proceed to delete it
-						free(tmp_car);
-						printf("rottamata\n");
+						station_root = RB_Delete_station(station_root, tmp_station);	//Delete station if found
+						printf("demolita\n");
+					}else{
+					printf("non demolita\n");
+					}
+				}
+			}
+
+			else if (strcmp(command, "aggiungi-auto") == 0)
+			{	
+				if(fscanf(fd, "%d %d", &distance, &range) != EOF)
+				{
+					tmp_station = Tree_Search_station(station_root, distance);		//First we search for the station
+					if (tmp_station != NULL)
+					{
+						tmp_car = malloc(sizeof(car_t));	//Allocate the size of 1 car node
+						if (tmp_car)
+						{
+							tmp_car->range = range;
+							tmp_station->cars = RB_Insert_car(tmp_station->cars, tmp_car);		//Insert the car node into the car tree of the designated station
+							printf("aggiunta\n");
+						}else{
+							printf("Error in memory allocation!");
+						}
+					}else{
+						printf("non aggiunta\n");
+					}
+				}
+			}
+
+			else if (strcmp(command, "rottama-auto") == 0)
+			{
+				if (fscanf(fd, "%d %d", &distance, &range))
+				{
+					tmp_station = Tree_Search_station(station_root, distance);		//First we search for the station
+					if (tmp_station != NULL)
+					{
+						tmp_car = Tree_Search_car(tmp_station->cars, range);	//If the station is found we search for the car within the station's cars
+						if (tmp_car != NULL)
+						{
+							tmp_station->cars = RB_Delete_car(tmp_station->cars, tmp_car);		//If the car is found we proceed to delete it
+							printf("rottamata\n");
+						}else{
+							printf("non rottamata\n");
+						}
 					}else{
 						printf("non rottamata\n");
 					}
-				}else{
-					printf("non rottamata\n");
 				}
 			}
-		}
 
-		else if (strcmp(command, "pianifica-percorso") == 0)
-		{
-			if (fscanf(fd, "%d %d", &starting_station, &arrival_station) != EOF)
+			else if (strcmp(command, "pianifica-percorso") == 0)
 			{
-				start = Tree_Search_station(station_root, starting_station);
-				finish = Tree_Search_station(station_root, arrival_station);
-				if(start != NULL && finish != NULL){
-					path_finder(start, finish);
-				}else{
-					printf("nessun percorso\n");
+				if (fscanf(fd, "%d %d", &starting_station, &arrival_station) != EOF)
+				{
+					start = Tree_Search_station(station_root, starting_station);
+					finish = Tree_Search_station(station_root, arrival_station);
+					if(start != NULL && finish != NULL){
+						path_finder(start, finish);
+					}else{
+						printf("nessun percorso\n");
+					}
 				}
 			}
 		}
-	}
-	fclose(fd);
+		fclose(fd);
 	}else{
 		printf("Error in opening the file!");
 	}
-	InOrder_Tree_Walk(station_root);
 	return 0;
 }
 
@@ -287,7 +288,7 @@ station_t * Tree_Maximum_station(station_t *x){
 
 	curr = x;
 	while(curr->right != NULL){
-		curr = curr->right;
+		curr = curr->right; 
 	}
 	return curr;
 }
@@ -446,11 +447,8 @@ station_t * RB_Insert_station(station_t *t, station_t *z){
 		if(z->distance < x->distance){
 			x = x->left;
 		}
-		else if(z->distance > x->distance){
-			x = x->right;
-		}
 		else{
-			return NULL;
+			x = x->right;
 		}
 	}
 	z->p = y;
@@ -843,12 +841,47 @@ station_t * RB_Delete_Fixup_station(station_t *t, station_t *x, station_t *paren
 				t = Left_Rotate_station(t, parent);
 				w = parent->right;
 			}
-			if((w->left == NULL && w->right == NULL) || (w->left->color == 0 && w->right->color == 0)){		//Case 2
-				w->color = 1;
+			if(w->left == NULL){
+				if(w->right == NULL || w->right->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
+						w->left->color = 0;
+						w->color = 1;
+						t = Right_Rotate_station(t, w);
+						w = parent->right;
+					}
+					w->color = parent->color;		//Case 4
+					parent->color = 0;
+					w->right->color = 0;
+					t = Left_Rotate_station(t, parent);
+					x = t;
+				}
+			}else if(w->right == NULL){
+				if(w->left->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
+						w->left->color = 0;
+						w->color = 1;
+						t = Right_Rotate_station(t, w);
+						w = parent->right;
+					}
+					w->color = parent->color;		//Case 4
+					parent->color = 0;
+					w->right->color = 0;
+					t = Left_Rotate_station(t, parent);
+					x = t;
+				}
+			}else if(w->right->color == 0 && w->left->color == 0){
+				w->color = 0;
 				x = parent;
 				parent = x->p;
-			}
-			else{
+			}else{
 				if((w->right == NULL) || (w->right->color == 0)){		//Case 3
 					w->left->color = 0;
 					w->color = 1;
@@ -870,12 +903,47 @@ station_t * RB_Delete_Fixup_station(station_t *t, station_t *x, station_t *paren
 				t = Right_Rotate_station(t, parent);
 				w = parent->left;
 			}
-			if((w->left == NULL && w->right == NULL) || (w->right->color == 0 && w->left->color == 0)){
+			if(w->left == NULL){
+				if(w->right == NULL || w->right->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->left == NULL) || (w->left->color == 0)){
+						w->right->color = 0;
+						w->color = 1;
+						t = Left_Rotate_station(t, w);
+						w = parent->left;
+					}
+					w->color = parent->color;
+					parent->color = 0;
+					w->left->color = 0;
+					t = Right_Rotate_station(t, parent);
+					x = t;
+				}
+			}else if(w->right == NULL){
+				if(w->left->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->left == NULL) || (w->left->color == 0)){
+						w->right->color = 0;
+						w->color = 1;
+						t = Left_Rotate_station(t, w);
+						w = parent->left;
+					}
+					w->color = parent->color;
+					parent->color = 0;
+					w->left->color = 0;
+					t = Right_Rotate_station(t, parent);
+					x = t;
+				}
+			}else if(w->right->color == 0 && w->left->color == 0){
 				w->color = 0;
 				x = parent;
 				parent = x->p;
-			}
-			else{
+			}else{
 				if((w->left == NULL) || (w->left->color == 0)){
 					w->right->color = 0;
 					w->color = 1;
@@ -910,12 +978,47 @@ car_t * RB_Delete_Fixup_car(car_t *t, car_t *x, car_t *parent){
 				t = Left_Rotate_car(t, parent);
 				w = parent->right;
 			}
-			if((w->left == NULL && w->right == NULL) || (w->left->color == 0 && w->right->color == 0)){		//Case 2
-				w->color = 1;
+			if(w->left == NULL){
+				if(w->right == NULL || w->right->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
+						w->left->color = 0;
+						w->color = 1;
+						t = Right_Rotate_car(t, w);
+						w = parent->right;
+					}
+					w->color = parent->color;		//Case 4
+					parent->color = 0;
+					w->right->color = 0;
+					t = Left_Rotate_car(t, parent);
+					x = t;
+				}
+			}else if(w->right == NULL){
+				if(w->left->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
+						w->left->color = 0;
+						w->color = 1;
+						t = Right_Rotate_car(t, w);
+						w = parent->right;
+					}
+					w->color = parent->color;		//Case 4
+					parent->color = 0;
+					w->right->color = 0;
+					t = Left_Rotate_car(t, parent);
+					x = t;
+				}
+			}else if(w->right->color == 0 && w->left->color == 0){
+				w->color = 0;
 				x = parent;
 				parent = x->p;
-			}
-			else{
+			}else{
 				if((w->right == NULL) || (w->right->color == 0)){		//Case 3
 					w->left->color = 0;
 					w->color = 1;
@@ -937,12 +1040,47 @@ car_t * RB_Delete_Fixup_car(car_t *t, car_t *x, car_t *parent){
 				t = Right_Rotate_car(t, parent);
 				w = parent->left;
 			}
-			if((w->left == NULL && w->right == NULL) || (w->right->color == 0 && w->left->color == 0)){
+			if(w->left == NULL){
+				if(w->right == NULL || w->right->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->left == NULL) || (w->left->color == 0)){
+						w->right->color = 0;
+						w->color = 1;
+						t = Left_Rotate_car(t, w);
+						w = parent->left;
+					}
+					w->color = parent->color;
+					parent->color = 0;
+					w->left->color = 0;
+					t = Right_Rotate_car(t, parent);
+					x = t;
+				}
+			}else if(w->right == NULL){
+				if(w->left->color == 0){
+					w->color = 0;
+					x = parent;
+					parent = x->p;
+				}else{
+					if((w->left == NULL) || (w->left->color == 0)){
+						w->right->color = 0;
+						w->color = 1;
+						t = Left_Rotate_car(t, w);
+						w = parent->left;
+					}
+					w->color = parent->color;
+					parent->color = 0;
+					w->left->color = 0;
+					t = Right_Rotate_car(t, parent);
+					x = t;
+				}
+			}else if(w->right->color == 0 && w->left->color == 0){
 				w->color = 0;
 				x = parent;
 				parent = x->p;
-			}
-			else{
+			}else{
 				if((w->left == NULL) || (w->left->color == 0)){
 					w->right->color = 0;
 					w->color = 1;
@@ -964,8 +1102,6 @@ car_t * RB_Delete_Fixup_car(car_t *t, car_t *x, car_t *parent){
 }
 
 
-
-
 stack_t * push(stack_t *s, stack_t *z){
 	if(s == NULL){
 		s = z;
@@ -978,11 +1114,10 @@ stack_t * push(stack_t *s, stack_t *z){
 }
 
 
-stack_t * pop(stack_t *s, station_t *res){
+stack_t * pop(stack_t *s){
 	stack_t *head = NULL;
 
 	head = s;
-	res = s->station_ptr;
 	s = s->next;
 	free(head);
 
@@ -990,23 +1125,40 @@ stack_t * pop(stack_t *s, station_t *res){
 }
 
 
-int empty(stack_t *s){
-	int res;
-
-	if(s == NULL){
-		res = 1;
-	}else{
-		res = 0;
+queue_t * enqueue(queue_t *t, queue_t *z){		//We will use the tail as reference and modify it here while the head is modified in the main function when there is need
+	if(t == NULL){
+		t = z;
 	}
+	else{
+		z->previous = t;
+		t->next = z;
+		t = z;
+	}
+	return t;
+}
 
-	return res;
+
+queue_t * dequeue(queue_t *h){
+	queue_t *head = NULL;
+
+	head = h;
+	h = h->next;
+	if(h != NULL){
+		h->previous = NULL;
+	}
+	free(head);
+
+	return h;
 }
 
 
 void path_finder(station_t *start, station_t *finish){
 	station_t *tmp_destination = NULL, *tmp_stop = NULL, *farthest_stop = NULL, *tmp_limit = NULL, *tmp = NULL;
+	station_t *tmp_start = NULL; 
 	car_t *tmp_max_range = NULL;
-	stack_t *stops = NULL, *tmp_elem = NULL;
+	stack_t *stops = NULL, *tmp_elem = NULL, *black_list = NULL, *stack_ptr = NULL;
+	queue_t *head = NULL, *tail = NULL, *tmp_tail = NULL;
+	int res;
 
 
 	if(start->distance == finish->distance){		//Arrival station is the same as the starting one.
@@ -1023,14 +1175,26 @@ void path_finder(station_t *start, station_t *finish){
 			stops = push(stops, tmp_elem);
 		}else{
 			printf("Error in memory allocation!\n");
+			return;
 		}
 		while(farthest_stop != start)
 		{
+			farthest_stop = NULL;
 			while((tmp_stop != NULL) && (tmp_stop->distance >= start->distance))	//Loop for finding the farthest station that can reach tmp_destination
 			{
-				tmp_max_range = Tree_Maximum_car(tmp_stop->cars);
-				if(tmp_max_range->range >= (tmp_destination->distance - tmp_stop->distance)){
-					farthest_stop = tmp_stop;
+				stack_ptr = black_list;
+				res = 0;							
+				while(stack_ptr	!= NULL && res == 0){						//Loop for checking if the candidate tmp_stop is on the blacklist
+					if(tmp_stop == stack_ptr->station_ptr){
+						res = 1;
+					}
+					stack_ptr = stack_ptr->next;
+				}
+				if(res == 0){								//If the candidate tmp_stop is not on the blacklist
+					tmp_max_range = Tree_Maximum_car(tmp_stop->cars);
+					if(tmp_max_range->range >= (tmp_destination->distance - tmp_stop->distance)){
+						farthest_stop = tmp_stop;
+					}
 				}
 				tmp_stop = Tree_Predecessor(tmp_stop);
 			}
@@ -1044,7 +1208,7 @@ void path_finder(station_t *start, station_t *finish){
 					printf("Error in memory allocation!\n");
 					return;
 				}
-			}else if(tmp_destination == finish)			//If we can't reach the final station with a
+			}else if(tmp_destination == finish)			//If we can't reach the final station from any of the stations before it
 			{
 				printf("nessun percorso\n");
 				return;
@@ -1052,16 +1216,26 @@ void path_finder(station_t *start, station_t *finish){
 			{	
 				while((farthest_stop == NULL) && (stops->next != NULL))		//Use a stop that's closer to the arrival station and try to search for the farthest station that can reach it
 				{
-					stops = pop(stops, tmp_limit);
+					tmp_limit = stops->station_ptr;
+					stops = pop(stops);
+					tmp_elem = malloc(sizeof(stack_t));						//Push the unreachable station into the blacklist stack
+					if(tmp_elem){
+						tmp_elem->station_ptr = tmp_limit;
+						tmp_elem->next = NULL;
+						black_list = push(black_list, tmp_elem);
+					}else{
+						printf("Error in memory allocation!\n");
+						return;
+					}
 					tmp_destination = stops->station_ptr;
 					tmp_stop = Tree_Predecessor(tmp_destination);
-					while((tmp_stop != NULL) && (tmp_stop->distance > tmp_limit->distance))	//Loop for finding the farthest station that can reach tmp_destination
+					while((tmp_stop != NULL) && (tmp_stop->distance > tmp_limit->distance))		//Loop for finding the farthest station that can reach tmp_destination
 					{
 						tmp_max_range = Tree_Maximum_car(tmp_stop->cars);
 						if(tmp_max_range->range >= (tmp_destination->distance - tmp_stop->distance)){
 							farthest_stop = tmp_stop;
 						}
-					tmp_stop = Tree_Predecessor(tmp_stop);
+						tmp_stop = Tree_Predecessor(tmp_stop);
 					}
 				}
 				if(farthest_stop == NULL){
@@ -1084,10 +1258,124 @@ void path_finder(station_t *start, station_t *finish){
 			tmp_destination = farthest_stop;
 			tmp_stop = Tree_Predecessor(tmp_destination);
 		}
-		while(stops != NULL){
-			stops = pop(stops, tmp);
+		while(stops->next != NULL){
+			tmp = stops->station_ptr;
 			printf("%d ", tmp->distance);
+			stops = pop(stops);
 		}
-		printf("\n");
+		tmp = stops->station_ptr;
+		printf("%d\n", tmp->distance);
+		stops = pop(stops);
+	}else  								//Final destination ;) is closer to the start of the highway (second direction)
+		{
+		tmp_start = start;
+		tmp_stop = Tree_Predecessor(start);		//Find the predecessor of the starting station
+		tmp_tail = malloc(sizeof(queue_t));		//Enqueue the station into the queue 
+		if(tmp_tail){
+			tmp_tail->station_ptr = start;
+			tmp_tail->next = NULL;
+			tmp_tail->previous = NULL;
+			tail = enqueue(tail, tmp_tail);
+			head = tail;
+		}else{
+			printf("Error in memory allocation!\n");
+			return;
+		}
+		while(farthest_stop != finish)
+		{
+			farthest_stop = NULL;
+			while((tmp_stop != NULL) && (tmp_stop->distance >= finish->distance))	//Loop for finding the farthest station that can be reached by tmp_start
+			{		
+				stack_ptr = black_list;
+				res = 0;
+				while(stack_ptr != NULL && res == 0){				//Loop for checking if the candidate tmp_stop is on the blacklist
+					if(tmp_stop == stack_ptr->station_ptr){
+						res = 1;
+					}
+					stack_ptr = stack_ptr->next;
+				}
+				if(res == 0){									//If the candidate tmp_stop is not on the blacklist
+					tmp_max_range = Tree_Maximum_car(tmp_start->cars);
+					if(tmp_max_range->range >= (tmp_start->distance - tmp_stop->distance)){
+						farthest_stop = tmp_stop;
+					}
+				}
+				tmp_stop = Tree_Predecessor(tmp_stop);
+			}
+			if(farthest_stop != NULL){					//If we find the farthest station
+				tmp_tail = malloc(sizeof(queue_t));		//Enqueue it into the stations queue
+				if(tmp_tail){
+					tmp_tail->station_ptr = farthest_stop;
+					tmp_tail->next = NULL;
+					tmp_tail->previous = NULL;
+					tail = enqueue(tail, tmp_tail);
+				}else{
+					printf("Error in memory allocation!\n");
+					return;
+				}
+			}else if(tmp_start == start)		//If we can't reach any of the stations after the starting one
+			{
+				printf("nessun percorso\n");
+				return;
+			}else 								//If the farthest stop cannot reach any of its successors
+			{
+				while((farthest_stop == NULL) && (tail->previous != NULL))		//Use a stop that's closer to the starting station and try to search for the farthest station that it can reach
+				{
+					tmp_limit = tail->station_ptr;
+					tmp_tail = tail;
+					tail = tail->previous;
+					free(tmp_tail);
+					tmp_elem = malloc(sizeof(stack_t));
+					if(tmp_elem){												//Push the unreachable station into the blacklist stack
+						tmp_elem->station_ptr = tmp_limit;
+						tmp_elem->next = NULL;
+						black_list = push(black_list, tmp_elem);
+					}else{
+						printf("Error in memory allocation!\n");
+						return;
+					}
+					tmp_start = tail->station_ptr;
+					tmp_stop = Tree_Predecessor(tmp_start);
+					while((tmp_stop != NULL) && (tmp_stop->distance > tmp_limit->distance))		//Loop for finding the farthest station that can be reached by tmp_start
+					{	
+						tmp_max_range = Tree_Maximum_car(tmp_start->cars);
+						if(tmp_max_range->range >= (tmp_start->distance - tmp_stop->distance)){
+							farthest_stop = tmp_stop;
+						}
+						tmp_stop = Tree_Predecessor(tmp_stop);
+					}
+				}
+				if(farthest_stop == NULL){
+					printf("nessun percorso\n");
+					return;
+				}
+				else  									//If we find the farthest station
+				{										//Enqueue it into the stations queue
+					tmp_tail = malloc(sizeof(queue_t));
+					if(tmp_tail){
+						tmp_tail->station_ptr = farthest_stop;
+						tmp_tail->next = NULL;
+						tmp_tail->previous = NULL;
+						tail = enqueue(tail, tmp_tail);
+					}
+					else{
+						printf("Error in memory allocation!\n");
+						return;
+					}
+				}
+			}
+			tmp_start = farthest_stop;
+			tmp_stop = Tree_Predecessor(tmp_start);
+		}
+		while(head->next != NULL){
+			tmp = head->station_ptr;
+			printf("%d ", tmp->distance);
+			head = dequeue(head);
+		}
+		tmp = head->station_ptr;
+		printf("%d\n", tmp->distance);
+		head =  dequeue(head);
 	}
-}
+	return;
+}	
+	
