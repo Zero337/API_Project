@@ -84,6 +84,11 @@ queue_t * dequeue(queue_t *);
 
 void path_finder(station_t *, station_t *);
 
+stack_t * shorter_path_stack(station_t *, station_t *,stack_t *, stack_t *, int);
+
+queue_t * shorter_path_queue(station_t *, station_t *,stack_t *, stack_t *, int);
+
+
 
 int main(int argc, char const *argv[])
 {
@@ -94,7 +99,7 @@ int main(int argc, char const *argv[])
 	car_t *car_root = NULL, *tmp_car = NULL;
 
 
-	fd = fopen("archivio_test_aperti/open_10.txt", "r");
+	fd = fopen("archivio_test_aperti/open_27.txt", "r");
 	if(fd)
 	{
 		while(fscanf(fd, "%s", command) != EOF)
@@ -1156,9 +1161,9 @@ void path_finder(station_t *start, station_t *finish){
 	station_t *tmp_destination = NULL, *tmp_stop = NULL, *farthest_stop = NULL, *tmp_limit = NULL, *tmp = NULL;
 	station_t *tmp_start = NULL; 
 	car_t *tmp_max_range = NULL;
-	stack_t *stops = NULL, *tmp_elem = NULL, *black_list = NULL, *stack_ptr = NULL;
-	queue_t *head = NULL, *tail = NULL, *tmp_tail = NULL;
-	int res;
+	stack_t *stops = NULL, *tmp_elem = NULL, *black_list = NULL, *stack_ptr = NULL, *tmp_black_list = NULL;
+	queue_t *head = NULL, *tail = NULL, *tmp_tail = NULL, *tmp_head = NULL, *head_ptr = NULL;
+	int res, len;
 
 
 	if(start->distance == finish->distance){		//Arrival station is the same as the starting one.
@@ -1173,6 +1178,7 @@ void path_finder(station_t *start, station_t *finish){
 			tmp_elem->station_ptr = finish;
 			tmp_elem->next = NULL;
 			stops = push(stops, tmp_elem);
+			len = 1;
 		}else{
 			printf("Error in memory allocation!\n");
 			return;
@@ -1204,6 +1210,7 @@ void path_finder(station_t *start, station_t *finish){
 					tmp_elem->station_ptr = farthest_stop;
 					tmp_elem->next = NULL;
 					stops = push(stops, tmp_elem);
+					len ++;
 				}else{
 					printf("Error in memory allocation!\n");
 					return;
@@ -1212,12 +1219,13 @@ void path_finder(station_t *start, station_t *finish){
 			{
 				printf("nessun percorso\n");
 				return;
-			}else 										//If the farthest stop cannot be reached by an ancestor
+			}else 										//If the farthest stop cannot be reached by any ancestor
 			{	
 				while((farthest_stop == NULL) && (stops->next != NULL))		//Use a stop that's closer to the arrival station and try to search for the farthest station that can reach it
 				{
 					tmp_limit = stops->station_ptr;
 					stops = pop(stops);
+					len --;
 					tmp_elem = malloc(sizeof(stack_t));						//Push the unreachable station into the blacklist stack
 					if(tmp_elem){
 						tmp_elem->station_ptr = tmp_limit;
@@ -1249,6 +1257,7 @@ void path_finder(station_t *start, station_t *finish){
 						tmp_elem->station_ptr = farthest_stop;
 						tmp_elem->next = NULL;
 						stops = push(stops, tmp_elem);
+						len ++;
 					}else{
 						printf("Error in memory allocation!\n");
 						return;
@@ -1258,6 +1267,64 @@ void path_finder(station_t *start, station_t *finish){
 			tmp_destination = farthest_stop;
 			tmp_stop = Tree_Predecessor(tmp_destination);
 		}
+		tmp_start = start;
+		stack_ptr = stops->next;
+		tmp = stack_ptr->station_ptr;
+		tmp_elem = NULL;
+		while(tmp != finish && Tree_Predecessor(tmp) != finish){		//Loop for checking if the chosen path is indeed the one with the least stops
+			if(tmp != Tree_Predecessor(tmp_start)){		
+				tmp_elem = malloc(sizeof(stack_t));		
+				if(tmp_elem){			//Add tmp to the tmp_black_list
+					tmp_elem->station_ptr = tmp;
+					tmp_elem->next = NULL;
+					tmp_black_list = push(tmp_black_list, tmp_elem);
+				}else{
+					printf("Error in memory allocation!\n");
+					return;
+				}
+			}else
+			{
+				while(tmp_black_list != NULL){
+					tmp_elem = tmp_black_list;
+					tmp_black_list = tmp_black_list->next;
+					free(tmp_elem);
+				}
+				tmp_start = stack_ptr->station_ptr;
+				stack_ptr = stack_ptr->next;
+				tmp = stack_ptr->station_ptr;
+				tmp_elem = NULL;
+				tmp_elem = malloc(sizeof(stack_t));
+				if(tmp_elem){			//Add tmp to the tmp_black_list
+					tmp_elem->station_ptr = tmp;
+					tmp_elem->next = NULL;
+					tmp_black_list = push(tmp_black_list, tmp_elem);
+				}else{
+					printf("Error in memory allocation!\n");
+					return;
+				}
+			}
+			tmp_elem = shorter_path_stack(start, finish, black_list, tmp_black_list, len);
+			if(tmp_elem != NULL){
+				tmp_start = start;
+				stops = tmp_elem;
+				stack_ptr = stops->next;
+				tmp = stack_ptr->station_ptr;
+				len = 0;
+				tmp_elem = stops;
+				while(tmp_elem != NULL){
+					len ++;
+					tmp_elem = tmp_elem->next;
+				}
+				while(tmp_black_list != NULL){
+					tmp_elem = tmp_black_list;
+					tmp_black_list = tmp_black_list->next;
+					free(tmp_elem);
+				}
+			}
+			else{
+				tmp = Tree_Successor(tmp);
+			}
+		}	
 		while(stops->next != NULL){
 			tmp = stops->station_ptr;
 			printf("%d ", tmp->distance);
@@ -1277,6 +1344,7 @@ void path_finder(station_t *start, station_t *finish){
 			tmp_tail->previous = NULL;
 			tail = enqueue(tail, tmp_tail);
 			head = tail;
+			len = 1;
 		}else{
 			printf("Error in memory allocation!\n");
 			return;
@@ -1309,6 +1377,7 @@ void path_finder(station_t *start, station_t *finish){
 					tmp_tail->next = NULL;
 					tmp_tail->previous = NULL;
 					tail = enqueue(tail, tmp_tail);
+					len ++;
 				}else{
 					printf("Error in memory allocation!\n");
 					return;
@@ -1325,6 +1394,7 @@ void path_finder(station_t *start, station_t *finish){
 					tmp_tail = tail;
 					tail = tail->previous;
 					free(tmp_tail);
+					len --;
 					tmp_elem = malloc(sizeof(stack_t));
 					if(tmp_elem){												//Push the unreachable station into the blacklist stack
 						tmp_elem->station_ptr = tmp_limit;
@@ -1357,6 +1427,12 @@ void path_finder(station_t *start, station_t *finish){
 						tmp_tail->next = NULL;
 						tmp_tail->previous = NULL;
 						tail = enqueue(tail, tmp_tail);
+						len ++;
+						while(tmp_black_list != NULL){
+							tmp_elem = tmp_black_list;
+							tmp_black_list = tmp_black_list->next;
+							free(tmp_elem);
+						}
 					}
 					else{
 						printf("Error in memory allocation!\n");
@@ -1366,6 +1442,59 @@ void path_finder(station_t *start, station_t *finish){
 			}
 			tmp_start = farthest_stop;
 			tmp_stop = Tree_Predecessor(tmp_start);
+		}
+		tmp_start = start;
+		head_ptr = head->next;
+		tmp = head_ptr->station_ptr;
+		tmp_head = NULL;
+		while(tmp != finish && Tree_Predecessor(tmp) != finish){		//Loop for checking if the chosen path is indeed the one with the least stops
+			if(tmp != Tree_Predecessor(tmp_start)){
+				tmp_elem = malloc(sizeof(stack_t));
+				if(tmp_elem){		//Add tmp to the tmp_black_list
+					tmp_elem->station_ptr = tmp;
+					tmp_elem->next = NULL;
+					tmp_black_list = push(tmp_black_list, tmp_elem);
+				}else{
+					printf("Error in memory allocation!\n");
+					return;
+				}
+			}
+			else
+			{	
+				while(tmp_black_list != NULL){
+					tmp_elem = tmp_black_list;
+					tmp_black_list = tmp_black_list->next;
+					free(tmp_elem);
+				}
+				tmp_start = head_ptr->station_ptr;
+				head_ptr = head_ptr->next;
+				tmp = head_ptr->station_ptr;
+				tmp_elem = NULL;
+				tmp_elem = malloc(sizeof(stack_t));
+				if(tmp_elem){		//Add tmp to the tmp_black_list
+					tmp_elem->station_ptr = tmp;
+					tmp_elem->next = NULL;
+					tmp_black_list = push(tmp_black_list, tmp_elem);
+				}else{
+					printf("Error in memory allocation!\n");
+				}
+			}
+			tmp_head = shorter_path_queue(start, finish, black_list, tmp_black_list, len);
+			if(tmp_head != NULL){
+				tmp_start = start;
+				head = tmp_head;
+				head_ptr = head->next;
+				tmp = head_ptr->station_ptr;
+				len = 0;
+				tmp_head = head;
+				while(tmp_head != NULL){
+					len ++;
+					tmp_head = tmp_head->next;
+				}
+			}
+			else{
+				tmp = Tree_Successor(tmp);
+			}
 		}
 		while(head->next != NULL){
 			tmp = head->station_ptr;
@@ -1378,4 +1507,298 @@ void path_finder(station_t *start, station_t *finish){
 	}
 	return;
 }	
-	
+
+
+stack_t * shorter_path_stack(station_t *start, station_t *finish, stack_t *black_list, stack_t *tmp_black_list, int max_len){
+	station_t *tmp_destination = NULL, *tmp_stop = NULL, *farthest_stop = NULL, *tmp_limit = NULL;
+	stack_t *stops = NULL, *tmp_elem = NULL, *local_black_list = NULL, *stack_ptr = NULL;
+	car_t *tmp_max_range = NULL;
+	int res, len;
+
+	stack_ptr = black_list;			//Merge the 2 blacklists (the original and the one that contains stations between tmp_start and tmp)
+	if(stack_ptr != NULL){
+		while(stack_ptr->next != NULL){
+			stack_ptr = stack_ptr->next;
+		}
+		stack_ptr->next = tmp_black_list;
+	}else{
+		black_list = tmp_black_list;
+	}	
+	local_black_list = black_list;
+	tmp_destination = finish;
+	tmp_stop = Tree_Predecessor(finish);	//Find the predecessor of the arrival station
+	tmp_elem = malloc(sizeof(stack_t));		//Push the arrival station into the stops stack
+	if(tmp_elem){
+		tmp_elem->station_ptr = finish;
+		tmp_elem->next = NULL;
+		stops = push(stops, tmp_elem);
+		len = 1;
+	}else{
+		printf("Error in memory allocation!\n");
+		return NULL;
+	}
+	while(farthest_stop != start && len < max_len)
+	{
+		farthest_stop = NULL;
+		while((tmp_stop != NULL) && (tmp_stop->distance >= start->distance))	//Loop for finding the farthest station that can reach tmp_destination
+		{
+			stack_ptr = local_black_list;
+			res = 0;							
+			while(stack_ptr	!= NULL && res == 0){						//Loop for checking if the candidate tmp_stop is on the blacklist
+				if(tmp_stop == stack_ptr->station_ptr){
+					res = 1;
+				}
+				stack_ptr = stack_ptr->next;
+			}
+			if(res == 0){								//If the candidate tmp_stop is not on the blacklist
+				tmp_max_range = Tree_Maximum_car(tmp_stop->cars);
+				if(tmp_max_range->range >= (tmp_destination->distance - tmp_stop->distance)){
+					farthest_stop = tmp_stop;
+				}
+			}
+			tmp_stop = Tree_Predecessor(tmp_stop);
+		}
+		if(farthest_stop != NULL){					//If we find the farthest station
+			tmp_elem = malloc(sizeof(stack_t));		//Push it into the stops stack
+			if(tmp_elem){
+				tmp_elem->station_ptr = farthest_stop;
+				tmp_elem->next = NULL;
+				stops = push(stops, tmp_elem);
+				len ++;
+			}else{
+				printf("Error in memory allocation!\n");
+				return NULL;
+			}
+		}else if(tmp_destination == finish)			//If we can't reach the final station from any of the stations before it
+		{
+			stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+			while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+				stack_ptr = stack_ptr->next;
+			}
+			stack_ptr->next = NULL;
+			return NULL;
+		}else 										//If the farthest stop cannot be reached by any ancestor
+		{	
+			while((farthest_stop == NULL) && (stops->next != NULL))		//Use a stop that's closer to the arrival station and try to search for the farthest station that can reach it
+			{
+				tmp_limit = stops->station_ptr;
+				stops = pop(stops);
+				len --;
+				tmp_elem = malloc(sizeof(stack_t));						//Push the unreachable station into the blacklist stack
+				if(tmp_elem){
+					tmp_elem->station_ptr = tmp_limit;
+					tmp_elem->next = NULL;
+					local_black_list = push(local_black_list, tmp_elem);
+				}else{
+					printf("Error in memory allocation!\n");
+					return NULL;
+				}
+				tmp_destination = stops->station_ptr;
+				tmp_stop = Tree_Predecessor(tmp_destination);
+				while((tmp_stop != NULL) && (tmp_stop->distance > tmp_limit->distance))		//Loop for finding the farthest station that can reach tmp_destination
+				{
+					tmp_max_range = Tree_Maximum_car(tmp_stop->cars);
+					if(tmp_max_range->range >= (tmp_destination->distance - tmp_stop->distance)){
+						farthest_stop = tmp_stop;
+					}
+					tmp_stop = Tree_Predecessor(tmp_stop);
+				}
+			}
+			if(farthest_stop == NULL){
+				stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+				while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+					stack_ptr = stack_ptr->next;
+				}
+				stack_ptr->next = NULL;
+				return NULL;
+			}
+			else  							//If we find the farthest station
+			{  								//Push it into the stops stack
+				tmp_elem = malloc(sizeof(stack_t));		
+				if(tmp_elem){
+					tmp_elem->station_ptr = farthest_stop;
+					tmp_elem->next = NULL;
+					stops = push(stops, tmp_elem);
+					len ++;
+				}else{
+					printf("Error in memory allocation!\n");
+					return NULL;
+				}
+			}
+		}
+		tmp_destination = farthest_stop;
+		tmp_stop = Tree_Predecessor(tmp_destination);
+	}
+	if(len >= max_len){
+		stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+		while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+			stack_ptr = stack_ptr->next;
+		}
+		if(stack_ptr->next == tmp_black_list){
+			stack_ptr->next = NULL;
+		}
+		return NULL;
+	}
+	else{
+		stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+		while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+			stack_ptr = stack_ptr->next;
+		}
+		if(stack_ptr->next == tmp_black_list){
+			stack_ptr->next = NULL;
+		}
+		return stops;
+	}
+}
+
+
+queue_t * shorter_path_queue(station_t *start, station_t *finish, stack_t *black_list, stack_t *tmp_black_list, int max_len){
+	station_t *tmp_stop = NULL, *farthest_stop = NULL, *tmp_limit = NULL;
+	station_t *tmp_start = NULL;
+	car_t *tmp_max_range = NULL;
+	stack_t *tmp_elem = NULL, *local_black_list = NULL, *stack_ptr = NULL;
+	int res, len;
+	queue_t *head = NULL, *tail = NULL, *tmp_tail = NULL;
+
+	stack_ptr = black_list;			//Merge the 2 blacklists (the original and the one that contains stations between tmp_start and tmp)
+	if(stack_ptr != NULL){
+		while(stack_ptr->next != NULL){
+			stack_ptr = stack_ptr->next;
+		}
+		stack_ptr->next = tmp_black_list;
+	}else{
+		black_list = tmp_black_list;
+	}	
+	local_black_list = black_list;
+	tmp_start = start;
+	tmp_stop = Tree_Predecessor(start);		//Find the predecessor of the starting station
+	tmp_tail = malloc(sizeof(queue_t));		//Enqueue the station into the queue 
+	if(tmp_tail){
+		tmp_tail->station_ptr = start;
+		tmp_tail->next = NULL;
+		tmp_tail->previous = NULL;
+		tail = enqueue(tail, tmp_tail);
+		head = tail;
+		len = 1;
+	}else{
+		printf("Error in memory allocation!\n");
+		return NULL;
+	}
+	while(farthest_stop != finish && len < max_len)
+	{
+		farthest_stop = NULL;
+		while((tmp_stop != NULL) && (tmp_stop->distance >= finish->distance))	//Loop for finding the farthest station that can be reached by tmp_start
+		{		
+			stack_ptr = local_black_list;
+			res = 0;
+			while(stack_ptr != NULL && res == 0){				//Loop for checking if the candidate tmp_stop is on the blacklist
+				if(tmp_stop == stack_ptr->station_ptr){
+					res = 1;
+				}
+				stack_ptr = stack_ptr->next;
+			}
+			if(res == 0){									//If the candidate tmp_stop is not on the blacklist
+				tmp_max_range = Tree_Maximum_car(tmp_start->cars);
+				if(tmp_max_range->range >= (tmp_start->distance - tmp_stop->distance)){
+					farthest_stop = tmp_stop;
+				}
+			}
+			tmp_stop = Tree_Predecessor(tmp_stop);
+		}
+		if(farthest_stop != NULL){					//If we find the farthest station
+			tmp_tail = malloc(sizeof(queue_t));		//Enqueue it into the stations queue
+			if(tmp_tail){
+				tmp_tail->station_ptr = farthest_stop;
+				tmp_tail->next = NULL;
+				tmp_tail->previous = NULL;
+				tail = enqueue(tail, tmp_tail);
+				len ++;
+			}else{
+				printf("Error in memory allocation!\n");
+				return NULL;
+			}
+		}else if(tmp_start == start)		//If we can't reach any of the stations after the starting one
+		{
+			stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+			while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+				stack_ptr = stack_ptr->next;
+			}
+			stack_ptr->next = NULL;
+			return NULL;
+		}else 								//If the farthest stop cannot reach any of its successors
+		{
+			while((farthest_stop == NULL) && (tail->previous != NULL))		//Use a stop that's closer to the starting station and try to search for the farthest station that it can reach
+			{
+				tmp_limit = tail->station_ptr;
+				tmp_tail = tail;
+				tail = tail->previous;
+				free(tmp_tail);
+				len --;
+				tmp_elem = malloc(sizeof(stack_t));
+				if(tmp_elem){												//Push the unreachable station into the blacklist stack
+					tmp_elem->station_ptr = tmp_limit;
+					tmp_elem->next = NULL;
+					black_list = push(black_list, tmp_elem);
+				}else{
+					printf("Error in memory allocation!\n");
+					return NULL;
+				}
+				tmp_start = tail->station_ptr;
+				tmp_stop = Tree_Predecessor(tmp_start);
+				while((tmp_stop != NULL) && (tmp_stop->distance > tmp_limit->distance))		//Loop for finding the farthest station that can be reached by tmp_start
+				{	
+					tmp_max_range = Tree_Maximum_car(tmp_start->cars);
+					if(tmp_max_range->range >= (tmp_start->distance - tmp_stop->distance)){
+						farthest_stop = tmp_stop;
+					}
+					tmp_stop = Tree_Predecessor(tmp_stop);
+				}
+			}
+			if(farthest_stop == NULL){
+				stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+				while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+					stack_ptr = stack_ptr->next;
+				}
+				stack_ptr->next = NULL;
+				return NULL;
+			}
+			else  									//If we find the farthest station
+			{										//Enqueue it into the stations queue
+				tmp_tail = malloc(sizeof(queue_t));
+				if(tmp_tail){
+					tmp_tail->station_ptr = farthest_stop;
+					tmp_tail->next = NULL;
+					tmp_tail->previous = NULL;
+					tail = enqueue(tail, tmp_tail);
+					len ++;
+				}
+				else{
+					printf("Error in memory allocation!\n");
+					return NULL;
+				}
+			}
+		}
+		tmp_start = farthest_stop;
+		tmp_stop = Tree_Predecessor(tmp_start);
+	}
+	if(len < max_len){
+		stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+		while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+			stack_ptr = stack_ptr->next;
+		}
+		if(stack_ptr->next == tmp_black_list){
+			stack_ptr->next = NULL;
+		}
+		return head;
+	}
+	else{
+		stack_ptr = black_list;			//Seperate the black_list into the original 2 blacklists
+		while(stack_ptr != tmp_black_list && stack_ptr->next != tmp_black_list){
+			stack_ptr = stack_ptr->next;
+		}
+		if(stack_ptr->next == tmp_black_list){
+			stack_ptr->next = NULL;
+		}
+		return NULL;
+	}
+}
