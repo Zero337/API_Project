@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ND -1
+#define RED 1
+#define BLACK 0
 
 typedef struct node_s{
 	int val;
@@ -9,6 +12,7 @@ typedef struct node_s{
 	struct node_s *left, *right, *p;
 }node_t;
 
+node_t * T_nil = NULL;
 
 void InOrder_Tree_Walk(node_t *);
 
@@ -22,7 +26,7 @@ node_t * Tree_Successor(node_t *);
 
 node_t * Left_Rotate(node_t *,node_t *);
 
-node_t * Right_Rotate(node_t *,node_t*);
+node_t * Right_Rotate(node_t *,node_t *);
 
 node_t * RB_Insert(node_t *,node_t *);
 
@@ -32,7 +36,7 @@ node_t * RB_Transplant(node_t *, node_t *, node_t *);
 
 node_t * RB_Delete(node_t *, node_t *);
 
-node_t * RB_Delete_Fixup(node_t *, node_t *, node_t *);
+node_t * RB_Delete_Fixup(node_t *, node_t *);
 
 
 
@@ -41,9 +45,18 @@ int main(int argc, char const *argv[])
 	node_t *root = NULL, *tmp = NULL;
 	int i, x, y, z;
 
-	x = 3;
+	T_nil = malloc(sizeof(node_t));
+	if(T_nil){
+		T_nil->val = ND;
+		T_nil->color = BLACK;
+		T_nil->left = T_nil;
+		T_nil->right = T_nil;
+		T_nil->p = T_nil;
+		root = T_nil;
+	}
+	x = 0;
 	y = 4;
-	z = 10;
+	z = 7;
 	for (i = 0; i < 15; i++)
 	{
 		tmp = malloc(sizeof(node_t));
@@ -59,17 +72,17 @@ int main(int argc, char const *argv[])
 
 	InOrder_Tree_Walk(root);
 	tmp = Tree_Search(root, x);
-	if(tmp != NULL){
+	if(tmp != T_nil){
 		root = RB_Delete(root, tmp);
 	}
 	InOrder_Tree_Walk(root);
 	tmp = Tree_Search(root, y);
-	if(tmp != NULL){
+	if(tmp != T_nil){
 		root = RB_Delete(root, tmp);
 	}
 	InOrder_Tree_Walk(root);	
 	tmp = Tree_Search(root, z);
-	if(tmp != NULL){
+	if(tmp != T_nil){
 		root = RB_Delete(root, tmp);
 	}
 	InOrder_Tree_Walk(root);
@@ -80,7 +93,7 @@ int main(int argc, char const *argv[])
 
 
 void InOrder_Tree_Walk(node_t *x){
-	if(x != NULL){
+	if(x != T_nil){
 		InOrder_Tree_Walk(x->left);
 		printf("%d\n", x->val);
 		InOrder_Tree_Walk(x->right);
@@ -92,12 +105,10 @@ node_t * Tree_Search(node_t *x, int k){
 	node_t * curr;
 
 	curr = x;
-	if (curr == NULL || k == curr->val)
-	{
+	if(curr == T_nil || k == curr->val){
 		return curr;
 	}
-	if (k < curr->val)
-	{
+	if(k < curr->val){
 		return Tree_Search(curr->left, k);
 	}else{
 		return Tree_Search(curr->right, k);
@@ -109,7 +120,7 @@ node_t * Tree_Minimum(node_t *x){
 	node_t *curr;
 
 	curr = x;
-	while(curr->left != NULL){
+	while(curr->left != T_nil){
 		curr = curr->left;
 	}
 	return curr;
@@ -120,7 +131,7 @@ node_t * Tree_Maximum(node_t *x){
 	node_t * curr;
 
 	curr = x;
-	while(curr->right != NULL){
+	while(curr->right != T_nil){
 		curr = curr->right;
 	}
 	return curr;
@@ -130,13 +141,31 @@ node_t * Tree_Maximum(node_t *x){
 node_t * Tree_Successor(node_t *x){
 	node_t *y, *z;
 
-	if(x->right != NULL){
+	if(x->right != T_nil){
 		return Tree_Minimum(x->right);
 	}
 	else{
 		z = x;
 		y = z->p;
-		while(y != NULL && z == y->right){
+		while(y != T_nil && z == y->right){
+			z = y;
+			y = y->p;
+		}
+		return y;
+	}
+}
+
+
+node_t * Tree_Predecessor(node_t *x){
+	node_t *y, *z;
+
+	if(x->left != T_nil){
+		return Tree_Maximum(x->left);
+	}
+	else{
+		z = x;
+		y = x->p;
+		while(y != T_nil && z == y->left){
 			z = y;
 			y = y->p;
 		}
@@ -150,11 +179,11 @@ node_t * Left_Rotate(node_t *t, node_t *x){
 
 	y = x->right;
 	x->right = y->left;
-	if(y->left != NULL){
+	if(y->left != T_nil){
 		y->left->p = x;
 	}
 	y->p = x->p;
-	if(x->p == NULL){
+	if(x->p == T_nil){
 		t = y;
 	}
 	else if(x == x->p->left){
@@ -174,11 +203,11 @@ node_t * Right_Rotate(node_t *t, node_t *y){
 
 	x = y->left;
 	y->left = x->right;
-	if(x->right != NULL){
+	if(x->right != T_nil){
 		x->right->p = y;
 	}
 	x->p =  y->p;
-	if(y->p == NULL){
+	if(y->p == T_nil){
 		t = x;
 	}
 	else if(y == y->p->right){
@@ -197,8 +226,8 @@ node_t * RB_Insert(node_t *t, node_t *z){
 	node_t *x, *y;
 
 	x = t;
-	y = NULL;
-	while(x != NULL){
+	y = T_nil;
+	while(x != T_nil){
 		y = x;
 		if(z->val < x->val){
 			x = x->left;
@@ -211,92 +240,69 @@ node_t * RB_Insert(node_t *t, node_t *z){
 		}
 	}
 	z->p = y;
-	if(y == NULL){
+	if(y == T_nil){
 		t = z;
-		z->left = NULL;
-		z->right = NULL;
-		z->color = 1;  //Red
-		return t;
 	}
-	else if (z->val < y->val)
-	{
+	else if(z->val < y->val){
 		y->left = z;
-		z->left = NULL;
-		z->right = NULL;
-		z->color = 1;  //Red
-		t = RB_Insert_Fixup(t, z);
-		return t;
-	}
-	else{
+	}else{
 		y->right = z;
-		z->left = NULL;
-		z->right = NULL;
-		z->color = 1;  //Red
-		t = RB_Insert_Fixup(t, z);
-		return t;
 	}
+	z->left = T_nil;
+	z->right = T_nil;
+	z->color = RED;
+	t = RB_Insert_Fixup(t, z);
+	return t;
 }
 
 
 node_t * RB_Insert_Fixup(node_t *t, node_t *z){
 	node_t *y;
 
-	while(z->p != NULL && z->p->p != NULL && z->p->color == 1){  /*while the added node has a red parent*/
+	while(z->p->color == RED){  	//while the added node has a red parent
 		if(z->p == z->p->p->left){  //Is z's parent a left child?
 			y = z->p->p->right;	
-			if(y != NULL && y->color == 1){  //Are z's parent and uncle both red?
-				z->p->color = 0;  //Black
-				y->color = 0;  //Black
-				z->p->p->color = 1;  //Red
+			if(y->color == RED){  //Are z's parent and uncle both red?	Case 1
+				z->p->color = BLACK;
+				y->color = BLACK;
+				z->p->p->color = RED;
 				z = z->p->p;
 			}else{
-				if (z == z->p->right){
+				if (z == z->p->right){			//Case 2
 					z = z->p;
 					t = Left_Rotate(t, z);
 				}
-				if(z->p != NULL){
-					z->p->color = 0;  //Black
-				}
-				if(z->p->p != NULL){
-					z->p->p->color = 1;  //Red
-					t = Right_Rotate(t, z->p->p);
-				}
+				z->p->color = BLACK;			//Case 3
+				z->p->p->color = 1;  //Red
+				t = Right_Rotate(t, z->p->p);
 			}
 		}
-
 		else{
 			y = z->p->p->left;
-			if(y != NULL && y->color == 1){  //Are z's parent and uncle both red?
-				z->p->color = 0;  //Black
-				y->color = 0;  //Black
-				z->p->p->color = 1;  //Red
+			if(y->color == RED){  //Are z's parent and uncle both red?	Case 1
+				z->p->color = BLACK;
+				y->color = BLACK;
+				z->p->p->color = RED;
 				z = z->p->p;
 			}else{
-				if (z == z->p->left){
+				if (z == z->p->left){			//Case 2
 					z = z->p;
 					t = Right_Rotate(t, z);
 				}
-				if(z->p != NULL){
-					z->p->color = 0;  //Black
-				}
-				if(z->p->p != NULL){
-					z->p->p->color = 1;  //Red
-					t = Left_Rotate(t, z->p->p);
-				}
+				z->p->color = BLACK;			//Case 3
+				z->p->p->color = RED;
+				t = Left_Rotate(t, z->p->p);
 			}
 		}
 	}
-	if (z->p != NULL && z->p->p == NULL && z->p->color == 1)  /*if z's parent is the root and it's red*/
-	{
-		z->p->color = 0;  /*turn z's parent's (the root's) color to black*/
-	}
+	t->color = BLACK;
 	return t;
 }
 
 
 node_t * RB_Transplant(node_t *t, node_t *u, node_t *v){
 
-	if(u->p == NULL){
+	if(u->p == T_nil){
 		t = v;
 	}
 	else if(u == u->p->left)
@@ -306,28 +312,24 @@ node_t * RB_Transplant(node_t *t, node_t *u, node_t *v){
 	else{
 		u->p->right = v;
 	}
-	if(v != NULL){
-		v->p = u->p;
-	}
+	v->p = u->p;
 	return t;
 }
 
 
 node_t * RB_Delete(node_t *t, node_t *z){
 	int y_original_color;
-	node_t *x = NULL, *y = NULL, *parent = NULL;
+	node_t *x = NULL, *y = NULL;
 	
 	y = z;
 	y_original_color = y->color;
-	if(z->left == NULL){
+	if(z->left == T_nil){
 		x = z->right;
-		parent = z->p;
 		t = RB_Transplant(t, z, z->right);	//Replace z by its right child
 	}
-	else if(z->right == NULL)
+	else if(z->right == T_nil)
 	{
 		x = z->left;
-		parent = z->p;
 		t = RB_Transplant(t, z, z->left);	//Replace z by its left child
 	}
 	else
@@ -337,178 +339,80 @@ node_t * RB_Delete(node_t *t, node_t *z){
 		x = y->right;
 		if(y != z->right)
 		{
-			parent = y->p;
 			t = RB_Transplant(t, y, y->right);	//Replace y by its right child
-			y->right = z->right;
-			y->right->p = y;
-			y->left = z->left;
-			y->left->p = y;
-			if(z->p != NULL){		//Is z different from the root of the tree?
-				if(z == z->p->left){	//Is z a left child?
-					y->p = z->p;
-					y->p->left = y;
-				}
-				else{
-					y->p = z->p;
-					y->p->right = y;
-				}
-			}else
-			{
-				y->p = z->p;
-				t = y;
-			}
+			y->right = z->right;				//z’s right child becomes y's right child
+			y->right->p = y;				
+		}else{									//In case x is T_nil
+			x->p = y;
 		}
-		else
-		{
-			parent = y;
-			t = RB_Transplant(t, z, y);
-			y->left = z->left;
-			y->left->p = y;
-			y->color = z->color;
-			y->p = z->p; 
-		}
+		t = RB_Transplant(t, z, y);				//Replace z by its successor y and give z's left
+		y->left = z->left;						//child to y, which had no left child
+		y->left->p = y;
+		y->color = z->color;
 	}
 	free(z);
-	if(y_original_color == 0){  				//If any RB violations occurred
-		t = RB_Delete_Fixup(t, x, parent);		//Correct them
+	if(y_original_color == BLACK){  		//If any RB violations occurred
+		t = RB_Delete_Fixup(t, x);			//Correct them
 	}
 	return t;
 }
 
 
-node_t * RB_Delete_Fixup(node_t *t, node_t *x, node_t *parent){
+node_t * RB_Delete_Fixup(node_t *t, node_t *x){
 	node_t *w;
 
-	while((x != t && x == NULL) || (x != t && x->color == 0)){		//While x is black or NULL
-		if(x == parent->left){		//Is x a left child?
-			w = parent->right;		//w is x's sibling
-			if(w->color == 1){  	//Case 1
-				w->color = 0;  
-				parent->color = 1;
-				t = Left_Rotate(t, parent);
-				w = parent->right;
+	while(x != t && x->color == BLACK){		//While x is black
+		if(x == x->p->left){		//Is x a left child?
+			w = x->p->right;		//w is x's sibling
+			if(w->color == RED){  	//Case 1
+				w->color = BLACK;  
+				x->p->color = RED;
+				t = Left_Rotate(t, x->p);
+				w = x->p->right;
 			}
-			if(w->left == NULL){
-				if(w->right == NULL || w->right->color == 0){
-					w->color = 0;
-					x = parent;
-					parent = x->p;
-				}else{
-					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
-						w->left->color = 0;
-						w->color = 1;
-						t = Right_Rotate(t, w);
-						w = parent->right;
-					}
-					w->color = parent->color;		//Case 4
-					parent->color = 0;
-					w->right->color = 0;
-					t = Left_Rotate(t, parent);
-					x = t;
-				}
-			}else if(w->right == NULL){
-				if(w->left->color == 0){
-					w->color = 0;
-					x = parent;
-					parent = x->p;
-				}else{
-					if((w->right == NULL) || (w->right->color == 0)){		//Case 3
-						w->left->color = 0;
-						w->color = 1;
-						t = Right_Rotate(t, w);
-						w = parent->right;
-					}
-					w->color = parent->color;		//Case 4
-					parent->color = 0;
-					w->right->color = 0;
-					t = Left_Rotate(t, parent);
-					x = t;
-				}
-			}else if(w->right->color == 0 && w->left->color == 0){
-				w->color = 0;
-				x = parent;
-				parent = x->p;
+			if(w->left->color == BLACK && w->right->color == BLACK){	//Case 2
+				w->color = RED;
+				x = x->p;
 			}else{
-				if((w->right == NULL) || (w->right->color == 0)){		//Case 3
-					w->left->color = 0;
-					w->color = 1;
+				if(w->right->color == BLACK){		//Case 3
+					w->left->color = BLACK;
+					w->color = RED;
 					t = Right_Rotate(t, w);
-					w = parent->right;
+					w = x->p->right;
 				}
-				w->color = parent->color;		//Case 4
-				parent->color = 0;
-				w->right->color = 0;
-				t = Left_Rotate(t, parent);
+				w->color = x->p->color;		//Case 4
+				x->p->color = BLACK;
+				w->right->color = BLACK;
+				t = Left_Rotate(t, x->p);
 				x = t;
 			}
 		}
-		else{
-			w = parent->left;
-			if(w->color == 1){
-				w->color = 0;
-				parent->color = 1;
-				t = Right_Rotate(t, parent);
-				w = parent->left;
+		else{		//If x is a right child
+			w = x->p->left;
+			if(w->color == RED){		//Case 1
+				w->color = BLACK;
+				x->p->color = RED;
+				t = Right_Rotate(t, x->p);
+				w = x->p->left;
 			}
-			if(w->left == NULL){
-				if(w->right == NULL || w->right->color == 0){
-					w->color = 0;
-					x = parent;
-					parent = x->p;
-				}else{
-					if((w->left == NULL) || (w->left->color == 0)){
-						w->right->color = 0;
-						w->color = 1;
-						t = Left_Rotate(t, w);
-						w = parent->left;
-					}
-					w->color = parent->color;
-					parent->color = 0;
-					w->left->color = 0;
-					t = Right_Rotate(t, parent);
-					x = t;
-				}
-			}else if(w->right == NULL){
-				if(w->left->color == 0){
-					w->color = 0;
-					x = parent;
-					parent = x->p;
-				}else{
-					if((w->left == NULL) || (w->left->color == 0)){
-						w->right->color = 0;
-						w->color = 1;
-						t = Left_Rotate(t, w);
-						w = parent->left;
-					}
-					w->color = parent->color;
-					parent->color = 0;
-					w->left->color = 0;
-					t = Right_Rotate(t, parent);
-					x = t;
-				}
-			}else if(w->right->color == 0 && w->left->color == 0){
-				w->color = 0;
-				x = parent;
-				parent = x->p;
+			if(w->right->color == BLACK && w->left->color == BLACK){	//Case 2
+				w->color = RED;
+				x = x->p;
 			}else{
-				if((w->left == NULL) || (w->left->color == 0)){
-					w->right->color = 0;
-					w->color = 1;
+				if(w->left->color == BLACK){
+					w->right->color = BLACK;
+					w->color = RED;
 					t = Left_Rotate(t, w);
-					w = parent->left;
+					w = x->p->left;
 				}
-				w->color = parent->color;
-				parent->color = 0;
-				w->left->color = 0;
-				t = Right_Rotate(t, parent);
+				w->color = x->p->color;
+				x->p->color = BLACK;
+				w->left->color = BLACK;
+				t = Right_Rotate(t, x->p);
 				x = t;
 			}
 		}
 	}
-	if(x != NULL){
-		x->color = 0;
-	}
+	x->color = BLACK;
 	return t;
 }
-
-
