@@ -2,15 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #define ND -1
 #define RED 1
 #define BLACK 0
+
 
 typedef struct node_s{
 	int val;
 	int color;
 	struct node_s *left, *right, *p;
 }node_t;
+
 
 node_t * T_nil = NULL;
 
@@ -53,6 +56,8 @@ int main(int argc, char const *argv[])
 		T_nil->right = T_nil;
 		T_nil->p = T_nil;
 		root = T_nil;
+	}else{
+		printf("Error in memory allocation!\n");
 	}
 	x = 0;
 	y = 4;
@@ -60,13 +65,13 @@ int main(int argc, char const *argv[])
 	for (i = 0; i < 15; i++)
 	{
 		tmp = malloc(sizeof(node_t));
-		if (tmp)
+		if(tmp)
 		{
 			tmp->val = i;
 			root = RB_Insert(root, tmp);
 		}
 		else{
-			printf("Error in allocating memory!\n");
+			printf("Error in memory allocation!\n");
 		}
 	}
 
@@ -273,7 +278,7 @@ node_t * RB_Insert_Fixup(node_t *t, node_t *z){
 					t = Left_Rotate(t, z);
 				}
 				z->p->color = BLACK;			//Case 3
-				z->p->p->color = 1;  //Red
+				z->p->p->color = RED;
 				t = Right_Rotate(t, z->p->p);
 			}
 		}
@@ -399,13 +404,13 @@ node_t * RB_Delete_Fixup(node_t *t, node_t *x){
 				w->color = RED;
 				x = x->p;
 			}else{
-				if(w->left->color == BLACK){
+				if(w->left->color == BLACK){		//Case 3
 					w->right->color = BLACK;
 					w->color = RED;
 					t = Left_Rotate(t, w);
 					w = x->p->left;
 				}
-				w->color = x->p->color;
+				w->color = x->p->color;			//Case 4
 				x->p->color = BLACK;
 				w->left->color = BLACK;
 				t = Right_Rotate(t, x->p);
