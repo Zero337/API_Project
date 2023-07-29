@@ -938,7 +938,7 @@ queue_t * dequeue(queue_t *h){
 
 
 void path_finder(station_t *start, station_t *finish, int max_len){
-	station_t *tmp_stop = NULL, *farthest_stop = NULL, *parents[max_len];
+	station_t *tmp_stop = NULL, *farthest_stop = NULL, *parents[max_len], *limit = NULL, *border = NULL, *station_ptr = NULL;
 	queue_t *head = NULL, *tail = NULL, *tmp_tail = NULL;
 	int level[max_len], lvl, max_car_range, i;
 	stack_t *stack_ptr = NULL, *stops = NULL;
@@ -963,6 +963,7 @@ void path_finder(station_t *start, station_t *finish, int max_len){
 		}else{
 			printf("Error in memory allocation!\n");
 		}
+		limit = start;
 		while(head != NULL && head->station_ptr != finish){		//While there are still nodes to visit and we haven't found the destination node
 			tmp_stop = head->station_ptr;
 			lvl = level[tmp_stop->id] + 1;
@@ -970,23 +971,22 @@ void path_finder(station_t *start, station_t *finish, int max_len){
 			if(head == NULL){
 				tail = NULL;
 			}
-			farthest_stop = tmp_stop->successor;		//Enqueue all the reachable stations from the tmp_stop which haven't already been enqueued
+			farthest_stop = limit->successor;		//Enqueue all the reachable stations from the tmp_stop which haven't already been enqueued
 			max_car_range = tmp_stop->max_range;
 			while(farthest_stop != T_nil_station){
 				if(max_car_range >= (farthest_stop->distance - tmp_stop->distance)){
-					if(level[farthest_stop->id] == -1){
-						tmp_tail = malloc(sizeof(queue_t));
-						if(tmp_tail){
-							tmp_tail->station_ptr = farthest_stop;
-							level[farthest_stop->id] = lvl;
-							parents[farthest_stop->id] = tmp_stop;
-							tail = enqueue(tail, tmp_tail);
-							if(head == NULL){
-								head = tail;
-							}
-						}else{
-							printf("Error in memory allocation!\n");
+					tmp_tail = malloc(sizeof(queue_t));
+					if(tmp_tail){
+						tmp_tail->station_ptr = farthest_stop;
+						level[farthest_stop->id] = lvl;
+						parents[farthest_stop->id] = tmp_stop;
+						tail = enqueue(tail, tmp_tail);
+						limit = farthest_stop;
+						if(head == NULL){
+							head = tail;
 						}
+					}else{
+						printf("Error in memory allocation!\n");
 					}
 					farthest_stop = farthest_stop->successor;
 				}else{
@@ -1035,6 +1035,8 @@ void path_finder(station_t *start, station_t *finish, int max_len){
 		}else{
 			printf("Error in memory allocation!\n");
 		}
+		limit = start;
+		border = start;
 		while(head != NULL && head->station_ptr != finish){		//While there are still nodes to visit and we haven't found the destination node
 			tmp_stop = head->station_ptr;
 			lvl = level[tmp_stop->id] + 1;
@@ -1042,32 +1044,40 @@ void path_finder(station_t *start, station_t *finish, int max_len){
 			if(head == NULL){
 				tail = NULL;
 			}
-			farthest_stop = tmp_stop->predecessor;		//Enqueue all the reachable stations from the tmp_stop which haven't already been enqueued
+			farthest_stop = limit->predecessor;		//Enqueue all the reachable stations from the tmp_stop which haven't already been enqueued
 			max_car_range = tmp_stop->max_range;
 			while(farthest_stop != T_nil_station){
 				if(max_car_range >= (tmp_stop->distance - farthest_stop->distance)){
-					if(level[farthest_stop->id] == -1){
-						tmp_tail = malloc(sizeof(queue_t));
-						if(tmp_tail){
-							tmp_tail->station_ptr = farthest_stop;
-							level[farthest_stop->id] = lvl;
-							parents[farthest_stop->id] = tmp_stop;
-							tail = enqueue(tail, tmp_tail);
-							if(head == NULL){
-								head = tail;
+					tmp_tail = malloc(sizeof(queue_t));
+					if(tmp_tail){
+						tmp_tail->station_ptr = farthest_stop;
+						level[farthest_stop->id] = lvl;
+						parents[farthest_stop->id] = tmp_stop;
+						tail = enqueue(tail, tmp_tail);
+						limit = farthest_stop;
+						if(head == NULL){
+							head = tail;
+						}
+						station_ptr = border;
+						while(station_ptr != start){
+							if(station_ptr->max_range >= (station_ptr->distance - farthest_stop->distance)){
+								parents[farthest_stop->id] = station_ptr;
+								station_ptr = start;
 							}
-						}else{
-							printf("Error in memory allocation!\n");
+							else{
+								station_ptr = station_ptr->successor;
+							}
 						}
 					}else{
-						if(lvl == level[farthest_stop->id]){
-							parents[farthest_stop->id] = tmp_stop;
-						}
+						printf("Error in memory allocation!\n");
 					}
 					farthest_stop = farthest_stop->predecessor;
 				}else{
 					farthest_stop = T_nil_station;
 				}
+			}
+			if(head != NULL && level[tmp_stop->id] != level[head->station_ptr->id]){
+				border = tail->station_ptr;
 			}
 		}
 		if(head != NULL){		//If we find the destination node
